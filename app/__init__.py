@@ -1,5 +1,7 @@
 from flask import Flask
 
+from app.modules.auth.controllers.routes import blp as auth_blp
+from app.modules.users.controllers.routes import blp as users_blp
 from .core import config as cfg
 from .core.extensions import db, migrate, jwt, api
 from .core.logging import setup_logging
@@ -24,11 +26,18 @@ def create_app() -> Flask:
     OPENAPI_URL_PREFIX=cfg.Config.OPENAPI_URL_PREFIX,
     OPENAPI_SWAGGER_UI_PATH=cfg.Config.OPENAPI_SWAGGER_UI_PATH,
     OPENAPI_SWAGGER_UI_URL="https://cdn.jsdelivr.net/npm/swagger-ui-dist/",
+    JSON_SORT_KEYS=False,
   )
+
+  app.json.sort_keys = False
   api.init_app(app)
+  api.register_blueprint(auth_blp, url_prefix="/api/v1")
+  api.register_blueprint(users_blp, url_prefix="/api/v1")
   api.spec.components.security_scheme(
     "bearerAuth", {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
   )
+
+  api.spec.options.update({"security": [{"bearerAuth": []}]})
 
   # cross-cutting
   register_middleware(app)
